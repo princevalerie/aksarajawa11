@@ -125,7 +125,7 @@ if image_data is not None:
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > 5:
+            if i < len(spaces) and spaces[i] > 50:
                 recognized_text += word + " "
                 word = ""
         
