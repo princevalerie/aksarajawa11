@@ -37,20 +37,16 @@ def mask_image(image):
     return binary_image
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
+# Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(binary_image):
-    _, binary_image = cv2.threshold(binary_image, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # Tidak perlu konversi lagi ke threshold
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    # Buat direktori untuk menyimpan karakter
-    # !mkdir -p /content/drive/MyDrive/aksarajawa_char/characters  # Uncomment if running in Colab
     
     char_images = []
     for i, contour in enumerate(contours):
         x, y, w, h = cv2.boundingRect(contour)
         char_image = binary_image[y:y+h, x:x+w]
         char_images.append(char_image)
-        # Uncomment if running in Colab
-        # cv2.imwrite(f'/content/drive/MyDrive/aksarajawa_char/characters/char_{i}.png', char_image)
     
     return char_images, contours
 
