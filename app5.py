@@ -28,20 +28,11 @@ def mask_image(image):
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_and_segment(image):
-    # Konversi gambar PIL ke numpy array (RGB)
     image_np = np.array(image.convert('RGB'))
-
-    # Konversi gambar dari RGB ke grayscale
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-
-    # Thresholding untuk mendapatkan gambar biner
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # Menggunakan operasi morfologi untuk mengurangi ketebalan karakter
     kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
-
-    # Mencari kontur di gambar biner
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     char_images = []
@@ -118,22 +109,24 @@ if image_data is not None:
     
     # Detect spaces with a fixed minimum space width
     min_space_width = 16  # Fixed minimum space width value
-    
-    # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
     
     if segmented_chars:
         # Predict each character and form words
         recognized_text = ""
         word = ""
-        for i, (char_image, _) in enumerate(segmented_chars):
+        char_positions = [x[1] for x in segmented_chars]  # Get x positions of characters
+
+        for i, (char_image, x) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > min_space_width:
+
+            # Check for spaces
+            if i < len(spaces) and (i + 1 < len(char_positions)) and (char_positions[i + 1] - (char_positions[i] + char_image.shape[1])) > min_space_width:
                 recognized_text += word + " "
                 word = ""
-        
+
         recognized_text += word
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
@@ -152,3 +145,4 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
