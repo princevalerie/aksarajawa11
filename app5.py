@@ -116,19 +116,24 @@ if image_data is not None:
         # Predict each character and form words
         recognized_text = ""
         last_pos = -1
-        word = ""
+        current_word = ""
+
+        # Create a list to store tuples of character predictions and their positions
+        char_predictions = []
 
         for i, (char_image, x) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            current_pos = x
-            
-            if last_pos != -1:
-                if i-1 < len(positions) and positions[i-1][1] < current_pos:
-                    recognized_text += " "
-            
+            char_predictions.append((char_class, x))
+        
+        # Sort by x-coordinate to ensure correct ordering
+        char_predictions.sort(key=lambda item: item[1])
+        
+        for i, (char_class, x) in enumerate(char_predictions):
+            if last_pos != -1 and i < len(positions) and positions[i][1] < x:
+                recognized_text += " "
             recognized_text += char_class
-            last_pos = current_pos
+            last_pos = x
 
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(positions)}")
@@ -147,3 +152,5 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
+
