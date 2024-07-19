@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 import io
+import matplotlib.pyplot as plt
 
 # Fungsi untuk menampilkan gambar
 def show_image(image, title=''):
@@ -64,6 +65,26 @@ def detect_spaces(contours, min_space_width=5):
             spaces.append(space_width)
             positions.append((x_prev + w_prev, x_curr))
     return spaces, positions
+
+# Fungsi untuk menghitung jumlah karakter yang dipisah oleh spasi
+def count_characters_between_spaces(positions, char_images):
+    counts = []
+    num_chars = len(char_images)
+    
+    if not positions:
+        return counts
+    
+    for i in range(len(positions)):
+        start_pos, end_pos = positions[i]
+        count = 0
+        
+        for _, x in char_images:
+            if start_pos < x < end_pos:
+                count += 1
+        
+        counts.append(count)
+    
+    return counts
 
 # Load the trained model
 class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
@@ -129,9 +150,14 @@ if image_data is not None:
         # Sort by x-coordinate to ensure correct ordering
         char_predictions.sort(key=lambda item: item[1])
         
+        # Calculate characters between spaces
+        counts_between_spaces = count_characters_between_spaces(positions, char_predictions)
+        
         for i, (char_class, x) in enumerate(char_predictions):
             if last_pos != -1 and i < len(positions) and positions[i][1] < x:
                 recognized_text += " "
+                # Add the number of characters between spaces to the text
+                recognized_text += f"[{counts_between_spaces[i]}]"
             recognized_text += char_class
             last_pos = x
 
@@ -152,5 +178,3 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
-
-
