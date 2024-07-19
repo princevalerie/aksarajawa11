@@ -24,8 +24,8 @@ def preprocess_javanese_script(image):
     hsv_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
     
     # Definisikan rentang warna hitam dalam HSV
-    lower_black = np.array([10, 10, 10])
-    upper_black = np.array([180, 255, 50])
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([128, 255, 50])
     
     # Buat mask untuk area hitam
     mask = cv2.inRange(hsv_image, lower_black, upper_black)
