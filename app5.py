@@ -16,7 +16,8 @@ def show_image(image, title=''):
     plt.axis('off')
     plt.show()
 
-def preprocess_javanese_script(image):
+# Fungsi untuk masking gambar
+def mask_image(image):
     # Konversi gambar PIL ke numpy array (RGB)
     image_np = np.array(image)
     
@@ -33,6 +34,10 @@ def preprocess_javanese_script(image):
     # Ubah area selain hitam menjadi putih
     binary_image = cv2.bitwise_not(mask)
     
+    return binary_image
+
+# Fungsi untuk preprocessing gambar dan segmentasi karakter
+def preprocess_javanese_script(binary_image):
     # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
@@ -89,14 +94,14 @@ if image_data is not None:
     # Load the image
     image = Image.open(io.BytesIO(image_data.getvalue()))
     
-    # Adjust the image (directly use the image for processing)
-    adjusted_image = image  # Removed the adjust_image call
+    # Apply masking
+    binary_image = mask_image(image)
     
-    # Display the adjusted image
-    st.image(adjusted_image, caption='Adjusted Image', use_column_width=True)
+    # Display the masked image
+    st.image(binary_image, caption='Masked Image', use_column_width=True)
     
-    # Segment characters from the adjusted image
-    segmented_chars, contours = preprocess_javanese_script(adjusted_image)
+    # Segment characters from the masked image
+    segmented_chars, contours = preprocess_javanese_script(binary_image)
     
     if segmented_chars:
         # Detect spaces
