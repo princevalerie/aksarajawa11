@@ -27,14 +27,23 @@ def mask_image(image):
     return binary_image
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
-def preprocess_and_segment(image_path):
-    image = cv2.imread(image_path)
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def preprocess_and_segment(image):
+    # Konversi gambar PIL ke numpy array (RGB)
+    image_np = np.array(image.convert('RGB'))
+
+    # Konversi gambar dari RGB ke grayscale
+    gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+
+    # Thresholding untuk mendapatkan gambar biner
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Menggunakan operasi morfologi untuk mengurangi ketebalan karakter
     kernel = np.ones((3, 3), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
+
+    # Mencari kontur di gambar biner
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
+
     char_images = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
@@ -48,9 +57,9 @@ def preprocess_and_segment(image_path):
             value=255
         )
         char_images.append((char_image_with_border, x))
-    
+
     char_images = sorted(char_images, key=lambda x: x[1])
-    return char_images
+    return char_images, contours
 
 # Deteksi spasi antar karakter
 def detect_spaces(contours):
@@ -95,14 +104,21 @@ image_data = st.camera_input("Take a picture")
 
 if image_data is not None:
     image = Image.open(io.BytesIO(image_data.getvalue()))
+    
+    # Apply masking
     binary_image = mask_image(image)
+    
+    # Display the masked image
     st.image(binary_image, caption='Masked Image', use_column_width=True)
     
+    # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(binary_image)
     
     if segmented_chars:
+        # Detect spaces
         spaces = detect_spaces(contours)
         
+        # Predict each character and form words
         recognized_text = ""
         word = ""
         for i, (char_image, _) in enumerate(segmented_chars):
