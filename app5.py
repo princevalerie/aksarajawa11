@@ -61,8 +61,8 @@ def preprocess_and_segment(image):
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
-# Deteksi spasi antar karakter dengan ambang batas dinamis
-def detect_spaces(contours, min_space_width):
+# Deteksi spasi antar karakter dengan ambang batas tetap
+def detect_spaces(contours, min_space_width=150):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
@@ -70,7 +70,7 @@ def detect_spaces(contours, min_space_width):
         x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
         x_curr, _, _, _ = cv2.boundingRect(contours[i])
         space_width = x_curr - (x_prev + w_prev)
-        if space_width > min_space_width:  # Menggunakan ambang batas dinamis
+        if space_width > min_space_width:  # Menggunakan ambang batas tetap
             spaces.append(space_width)
             positions.append((x_prev + w_prev, x_curr))  # Position of space
     return spaces, positions
@@ -116,8 +116,8 @@ if image_data is not None:
     # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
-    # Set the minimum space width you want to detect
-    min_space_width = st.slider("Set Minimum Space Width", min_value=0, max_value=255, value=150)
+    # Detect spaces with a fixed minimum space width
+    min_space_width = 150  # Fixed minimum space width value
     
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
@@ -130,7 +130,7 @@ if image_data is not None:
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > 30:
+            if i < len(spaces) and spaces[i] > 20:
                 recognized_text += word + " "
                 word = ""
         
