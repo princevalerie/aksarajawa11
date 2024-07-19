@@ -62,7 +62,7 @@ def preprocess_and_segment(image):
     return char_images, contours
 
 # Detect spaces between characters with a fixed threshold
-def detect_spaces(contours, min_space_width=150):
+def detect_spaces(contours, min_space_width=5):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
@@ -117,7 +117,7 @@ if image_data is not None:
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
     # Detect spaces with a fixed minimum space width
-    min_space_width = 1  # Fixed minimum space width value
+    min_space_width = 30  # Fixed minimum space width value
     
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
@@ -158,3 +158,4 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
