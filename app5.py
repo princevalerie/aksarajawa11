@@ -75,14 +75,6 @@ def detect_spaces(contours, min_space_width=5):
             positions.append((x_prev + w_prev, x_curr))
     return spaces, positions
 
-# Count characters left of spaces
-def count_chars_left_of_spaces(positions, contours):
-    counts = []
-    for (x1, x2) in positions:
-        count = sum(1 for contour in contours if cv2.boundingRect(contour)[0] < x1)
-        counts.append(count)
-    return counts
-
 # Load the trained model
 class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
                'na', 'nga', 'nya', 'pa', 'ra', 'sa', 'ta', 'tha', 'wa', 'ya']
@@ -134,16 +126,19 @@ if image_data is not None:
         # Predict each character and form words
         recognized_text = ""
         word = ""
-        spaces_detected = detect_spaces(contours, min_space_width)
+        space_index = 0
+        char_count = len(segmented_chars)
+        
         for i, (char_image, _) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
             
             # Handle spaces
-            if i < len(spaces_detected) and spaces_detected[i] > min_space_width:
+            if space_index < len(positions) and i == count_chars_left_of_spaces(positions, contours)[space_index]:
                 recognized_text += word + " "
                 word = ""
+                space_index += 1
         
         recognized_text += word
         st.write(f"Recognized Text: {recognized_text.strip()}")
