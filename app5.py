@@ -38,7 +38,7 @@ def preprocess_and_segment(image):
     _, binary_image = cv2.threshold(gray_image, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Menggunakan operasi morfologi untuk mengurangi ketebalan karakter
-    kernel = np.ones((10, 10), np.uint8)
+    kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
 
     # Mencari kontur di gambar biner
