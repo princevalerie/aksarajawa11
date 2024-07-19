@@ -62,7 +62,7 @@ def preprocess_and_segment(image):
     return char_images, contours
 
 # Deteksi spasi antar karakter dengan ambang batas tetap
-def detect_spaces(contours, min_space_width=20):
+def detect_spaces(contours, min_space_width=5):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
@@ -130,7 +130,7 @@ if image_data is not None:
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > 1:
+            if i < len(spaces) and spaces[i] > 5:
                 recognized_text += word + " "
                 word = ""
         
