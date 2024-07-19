@@ -25,7 +25,11 @@ def preprocess_javanese_script(image):
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
 
     # Thresholding untuk mengubah hitam menjadi putih dan selain hitam menjadi putih
-    _, binary_image = cv2.threshold(gray_image, 170, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Periksa jika gambar seluruhnya putih
+    if np.all(binary_image == 255):
+        return [], []  # Jika seluruhnya putih, kembalikan list kosong
 
     # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
