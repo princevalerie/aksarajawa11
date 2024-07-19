@@ -117,7 +117,7 @@ if image_data is not None:
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
     # Detect spaces with a fixed minimum space width
-    min_space_width = 30  # Fixed minimum space width value
+    min_space_width = 16  # Fixed minimum space width value
     
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
