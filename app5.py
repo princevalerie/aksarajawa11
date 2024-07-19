@@ -18,11 +18,14 @@ def show_image(image, title=''):
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(image):
-    # Konversi gambar PIL ke numpy array
-    image_np = np.array(image.convert('L'))  # Konversi ke grayscale terlebih dahulu
+    # Konversi gambar PIL ke numpy array (RGB)
+    image_np = np.array(image)
+
+    # Convert RGB to grayscale using average method
+    gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
 
     # Thresholding untuk mengubah hitam menjadi putih dan selain hitam menjadi putih
-    _, binary_image = cv2.threshold(image_np, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -72,9 +75,6 @@ def predict(image, model, transform):
 
 # Streamlit app
 st.title("Aksara Jawa Detection")
-
-# Ambil nilai threshold dari input pengguna
-threshold_value = st.slider("Set Threshold Value", min_value=0, max_value=255, value=128)
 
 # Camera input
 image_data = st.camera_input("Take a picture")
