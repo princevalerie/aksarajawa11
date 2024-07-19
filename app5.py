@@ -129,41 +129,29 @@ if image_data is not None:
     
     # Detect spaces with a fixed minimum space width
     min_space_width = 16  # Fixed minimum space width value
-    
-    # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
     
     if segmented_chars:
-        # Predict each character and form words
+        # Count characters between spaces
+        counts = count_characters_between_spaces(positions, segmented_chars)
+        
+        # Recognize and construct the text
         recognized_text = ""
-        last_pos = -1
-        current_word = ""
-
-        # Create a list to store tuples of character predictions and their positions
-        char_predictions = []
-
-        for i, (char_image, x) in enumerate(segmented_chars):
+        index = 0
+        for i, (char_image, _) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            char_predictions.append((char_class, x))
-        
-        # Sort by x-coordinate to ensure correct ordering
-        char_predictions.sort(key=lambda item: item[1])
-        
-        # Calculate characters between spaces
-        counts_between_spaces = count_characters_between_spaces(positions, char_predictions)
-        
-        for i, (char_class, x) in enumerate(char_predictions):
-            if last_pos != -1 and i < len(positions) and positions[i][1] < x:
-                recognized_text += " "
-                # Add the number of characters between spaces to the text
-                recognized_text += f"[{counts_between_spaces[i]}]"
             recognized_text += char_class
-            last_pos = x
-
+            index += 1
+            if i < len(spaces) and spaces[i] > min_space_width:
+                # Insert space and the count of characters between spaces
+                recognized_text += f"({counts[i]}) "
+        
+        # Display the recognized text
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(positions)}")
         
+        # Display each segmented character with its prediction
         st.write("Segmented Characters and Predictions:")
         for i, (char_image, _) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
