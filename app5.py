@@ -35,10 +35,10 @@ def preprocess_and_segment(image):
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
 
     # Thresholding untuk mendapatkan gambar biner
-    _, binary_image = cv2.threshold(gray_image, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Menggunakan operasi morfologi untuk mengurangi ketebalan karakter
-    kernel = np.ones((1, 1), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
 
     # Mencari kontur di gambar biner
@@ -61,17 +61,19 @@ def preprocess_and_segment(image):
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
-# Deteksi spasi antar karakter
-def detect_spaces(contours):
+# Deteksi spasi antar karakter dengan ambang batas dinamis
+def detect_spaces(contours, min_space_width):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
+    positions = []
     for i in range(1, len(contours)):
         x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
         x_curr, _, _, _ = cv2.boundingRect(contours[i])
         space_width = x_curr - (x_prev + w_prev)
-        if space_width > 20:
+        if space_width > min_space_width:  # Menggunakan ambang batas dinamis
             spaces.append(space_width)
-    return spaces
+            positions.append((x_prev + w_prev, x_curr))  # Position of space
+    return spaces, positions
 
 # Load the trained model
 class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
@@ -114,10 +116,13 @@ if image_data is not None:
     # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
+    # Set the minimum space width you want to detect
+    min_space_width = st.slider("Set Minimum Space Width", min_value=0, max_value=255, value=150)
+    
+    # Detect spaces
+    spaces, positions = detect_spaces(contours, min_space_width)
+    
     if segmented_chars:
-        # Detect spaces
-        spaces = detect_spaces(contours)
-        
         # Predict each character and form words
         recognized_text = ""
         word = ""
@@ -140,3 +145,10 @@ if image_data is not None:
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
     else:
         st.write("No characters detected.")
+    
+    # Visualize detected spaces
+    image_np = np.array(masked_image)
+    for (x1, x2) in positions:
+        cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
+    
+    st.image(image_np, caption='Detected Spaces', use_column_width=True)
