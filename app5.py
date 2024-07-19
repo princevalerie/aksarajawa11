@@ -16,6 +16,12 @@ def show_image(image, title=''):
     plt.axis('off')
     plt.show()
 
+# Fungsi untuk adjusted image: hitam tetap hitam, abu-abu dan lainnya menjadi putih
+def adjust_image(image, threshold=128):
+    image = np.array(image.convert('L'))  # Konversi gambar PIL ke numpy array dalam grayscale
+    adjusted_image = np.where((image > 0) & (image < threshold), 255, image)
+    return Image.fromarray(adjusted_image)
+
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(image):
     image = np.array(image.convert('L'))  # Konversi gambar PIL ke numpy array dalam grayscale
@@ -68,6 +74,9 @@ def predict(image, model, transform):
 # Streamlit app
 st.title("Aksara Jawa Detection")
 
+# Ambil nilai threshold dari input pengguna
+threshold_value = st.slider("Set Threshold Value", min_value=0, max_value=255, value=128)
+
 # Camera input
 image_data = st.camera_input("Take a picture")
 
@@ -75,11 +84,14 @@ if image_data is not None:
     # Load the image
     image = Image.open(io.BytesIO(image_data.getvalue()))
     
-    # Display the image
-    st.image(image, caption='Captured Image', use_column_width=True)
+    # Adjust the image
+    adjusted_image = adjust_image(image, threshold=threshold_value)
     
-    # Segment characters from the image
-    segmented_chars, contours = preprocess_javanese_script(image)
+    # Display the adjusted image
+    st.image(adjusted_image, caption='Adjusted Image', use_column_width=True)
+    
+    # Segment characters from the adjusted image
+    segmented_chars, contours = preprocess_javanese_script(adjusted_image)
     
     if segmented_chars:
         # Detect spaces
