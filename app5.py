@@ -31,10 +31,9 @@ def preprocess_and_segment(image):
     image_np = np.array(image.convert('RGB'))
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    kernel = np.ones((1, 1), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
     char_images = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
@@ -42,18 +41,17 @@ def preprocess_and_segment(image):
         char_image_negated = cv2.bitwise_not(char_image)
         border_size = 10
         char_image_with_border = cv2.copyMakeBorder(
-            char_image_negated, 
-            border_size, border_size, border_size, border_size, 
-            cv2.BORDER_CONSTANT, 
+            char_image_negated,
+            border_size, border_size, border_size, border_size,
+            cv2.BORDER_CONSTANT,
             value=255
         )
-        char_images.append((char_image_with_border, x))
-
+        char_images.append((char_image_with_border, x, y, w, h))
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
-# Deteksi spasi antar karakter dengan ambang batas tetap
-def detect_spaces(contours, min_space_width=5):
+# Deteksi spasi antar karakter dengan ambang batas dinamis
+def detect_spaces(contours, min_space_width):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
@@ -66,24 +64,12 @@ def detect_spaces(contours, min_space_width=5):
             positions.append((x_prev + w_prev, x_curr))
     return spaces, positions
 
-# Fungsi untuk menghitung jumlah karakter yang dipisah oleh spasi
-def count_characters_between_spaces(positions, char_images):
+# Fungsi untuk menghitung jumlah karakter di sebelah kiri setiap spasi
+def count_chars_left_of_spaces(positions, contours):
     counts = []
-    num_chars = len(char_images)
-    
-    if not positions:
-        return counts
-    
-    for i in range(len(positions)):
-        start_pos, end_pos = positions[i]
-        count = 0
-        
-        for _, x in char_images:
-            if start_pos < x < end_pos:
-                count += 1
-        
+    for (x1, x2) in positions:
+        count = sum(1 for contour in contours if cv2.boundingRect(contour)[0] < x1)
         counts.append(count)
-    
     return counts
 
 # Load the trained model
@@ -127,42 +113,34 @@ if image_data is not None:
     # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
-    # Detect spaces with a fixed minimum space width
-    min_space_width = 16  # Fixed minimum space width value
+    # Set the minimum space width you want to detect
+    min_space_width = 130  # Ubah nilai ini sesuai kebutuhan
+    
+    # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
     
-    if segmented_chars:
-        # Count characters between spaces
-        counts = count_characters_between_spaces(positions, segmented_chars)
-        
-        # Recognize and construct the text
-        recognized_text = ""
-        index = 0
-        for i, (char_image, _) in enumerate(segmented_chars):
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            recognized_text += char_class
-            index += 1
-            if i < len(spaces) and spaces[i] > min_space_width:
-                # Insert space and the count of characters between spaces
-                recognized_text += f"({counts[i]}) "
-        
-        # Display the recognized text
-        st.write(f"Recognized Text: {recognized_text.strip()}")
-        st.write(f"Jumlah spasi yang terdeteksi: {len(positions)}")
-        
-        # Display each segmented character with its prediction
-        st.write("Segmented Characters and Predictions:")
-        for i, (char_image, _) in enumerate(segmented_chars):
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
-    else:
-        st.write("No characters detected.")
+    # Count characters left of each space
+    char_counts_left_of_spaces = count_chars_left_of_spaces(positions, contours)
     
-    # Visualize detected spaces
+    # Display results
+    st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
+    st.write(f"Posisi spasi dan jumlah karakter di sebelah kirinya:")
+    for i, (pos, count) in enumerate(zip(positions, char_counts_left_of_spaces)):
+        st.write(f"Spasi {i + 1}: Dari {pos[0]} ke {pos[1]}, Jumlah karakter di sebelah kiri: {count}")
+    
+    # Visualize the result
     image_np = np.array(masked_image)
     for (x1, x2) in positions:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+    
+    # Recognize and construct the text
+    recognized_text = ""
+    for char_image, x, y, w, h in segmented_chars:
+        char_pil = Image.fromarray(char_image)
+        predicted_char = predict(char_pil, model, transform)
+        recognized_text += predicted_char + " "
+    
+    # Display the recognized text
+    st.write(f"Recognized Text: {recognized_text.strip()}")
