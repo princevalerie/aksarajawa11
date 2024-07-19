@@ -18,56 +18,58 @@ def show_image(image, title=''):
 
 # Fungsi untuk masking gambar
 def mask_image(image):
-    # Konversi gambar PIL ke numpy array (RGB)
     image_np = np.array(image)
-    
-    # Konversi gambar dari RGB ke HSV
     hsv_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
-    
-    # Definisikan rentang warna hitam dalam HSV
     lower_black = np.array([0, 0, 0])
     upper_black = np.array([180, 255, 135])
-    
-    # Buat mask untuk area hitam
     mask = cv2.inRange(hsv_image, lower_black, upper_black)
-    
-    # Ubah area selain hitam menjadi putih
     binary_image = cv2.bitwise_not(mask)
-    
     return binary_image
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
-# Fungsi untuk preprocessing gambar dan segmentasi karakter
-def preprocess_javanese_script(binary_image):
-    # Tidak perlu konversi lagi ke threshold
-    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def preprocess_and_segment(image_path):
+    image = cv2.imread(image_path)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    kernel = np.ones((3, 3), np.uint8)
+    eroded_image = cv2.erode(binary_image, kernel, iterations=1)
+    contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     char_images = []
-    for i, contour in enumerate(contours):
+    for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
-        char_image = binary_image[y:y+h, x:x+w]
-        char_images.append(char_image)
+        char_image = eroded_image[y:y+h, x:x+w]
+        char_image_negated = cv2.bitwise_not(char_image)
+        border_size = 10
+        char_image_with_border = cv2.copyMakeBorder(
+            char_image_negated, 
+            border_size, border_size, border_size, border_size, 
+            cv2.BORDER_CONSTANT, 
+            value=255
+        )
+        char_images.append((char_image_with_border, x))
     
-    return char_images, contours
+    char_images = sorted(char_images, key=lambda x: x[1])
+    return char_images
 
 # Deteksi spasi antar karakter
 def detect_spaces(contours):
-    contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])  # Urutkan kontur berdasarkan posisi x
+    contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     for i in range(1, len(contours)):
         x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
         x_curr, _, _, _ = cv2.boundingRect(contours[i])
         space_width = x_curr - (x_prev + w_prev)
-        if space_width > 20:  # Ambang batas untuk menentukan spasi (sesuaikan sesuai kebutuhan)
+        if space_width > 20:
             spaces.append(space_width)
     return spaces
 
 # Load the trained model
 class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
-               'na', 'nga', 'nya', 'pa', 'ra', 'sa', 'ta', 'tha', 'wa', 'ya']  # 20 classes
+               'na', 'nga', 'nya', 'pa', 'ra', 'sa', 'ta', 'tha', 'wa', 'ya']
 
 model = models.resnet18(pretrained=False)
-model.fc = nn.Linear(in_features=512, out_features=20, bias=True)  # Adjusted for 20 classes
+model.fc = nn.Linear(in_features=512, out_features=20, bias=True)
 model.load_state_dict(torch.load('cnn_model1.pth', map_location=torch.device('cpu')))
 model.eval()
 
@@ -92,43 +94,31 @@ st.title("Aksara Jawa Detection")
 image_data = st.camera_input("Take a picture")
 
 if image_data is not None:
-    # Load the image
     image = Image.open(io.BytesIO(image_data.getvalue()))
-    
-    # Apply masking
     binary_image = mask_image(image)
-    
-    # Display the masked image
     st.image(binary_image, caption='Masked Image', use_column_width=True)
     
-    # Segment characters from the masked image
-    segmented_chars, contours = preprocess_javanese_script(binary_image)
+    segmented_chars, contours = preprocess_and_segment(binary_image)
     
     if segmented_chars:
-        # Detect spaces
         spaces = detect_spaces(contours)
         
-        # Predict each character and form words
         recognized_text = ""
         word = ""
-        for i, char_image in enumerate(segmented_chars):
+        for i, (char_image, _) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > 20:  # Insert space if detected
+            if i < len(spaces) and spaces[i] > 20:
                 recognized_text += word + " "
                 word = ""
         
-        # Add the last word
         recognized_text += word
-        
-        # Display the recognized text
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
         
-        # Display each segmented character with its prediction
         st.write("Segmented Characters and Predictions:")
-        for i, char_image in enumerate(segmented_chars):
+        for i, (char_image, _) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
