@@ -62,7 +62,7 @@ def preprocess_and_segment(image):
     return char_images, contours
 
 # Detect spaces between characters with a fixed threshold
-def detect_spaces(contours, min_space_width=5):
+def detect_spaces(contours, min_space_width=150):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
