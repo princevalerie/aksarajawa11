@@ -109,27 +109,26 @@ if image_data is not None:
     
     # Detect spaces with a fixed minimum space width
     min_space_width = 16  # Fixed minimum space width value
+    
+    # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
     
     if segmented_chars:
         # Predict each character and form words
         recognized_text = ""
-        word = ""
         char_positions = [x[1] for x in segmented_chars]  # Get x positions of characters
 
         for i, (char_image, x) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            word += char_class
-
+            recognized_text += char_class
+            
             # Check for spaces
-            if i < len(spaces) and (i + 1 < len(char_positions)) and (char_positions[i + 1] - (char_positions[i] + char_image.shape[1])) > min_space_width:
-                recognized_text += word + " "
-                word = ""
+            if i < len(positions) and (i + 1 < len(char_positions)) and (positions[i][0] - (char_positions[i] + char_image.shape[1])) > min_space_width:
+                recognized_text += " "
 
-        recognized_text += word
         st.write(f"Recognized Text: {recognized_text.strip()}")
-        st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
+        st.write(f"Jumlah spasi yang terdeteksi: {len(positions)}")
         
         st.write("Segmented Characters and Predictions:")
         for i, (char_image, _) in enumerate(segmented_chars):
