@@ -16,22 +16,21 @@ def show_image(image, title=''):
     plt.axis('off')
     plt.show()
 
-# Fungsi untuk adjusted image: hitam tetap hitam, abu-abu dan lainnya menjadi putih
-def adjust_image(image, threshold=128):
-    image = np.array(image.convert('L'))  # Konversi gambar PIL ke numpy array dalam grayscale
-    adjusted_image = np.where((image > 0) & (image < threshold), 255, image)
-    return Image.fromarray(adjusted_image)
-
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(image):
-    image = np.array(image.convert('L'))  # Konversi gambar PIL ke numpy array dalam grayscale
+    # Konversi gambar PIL ke numpy array
+    image = np.array(image)
+
+    # Thresholding untuk mengubah hitam menjadi putih dan selain hitam menjadi putih
     _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     char_images = []
     for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        char_image = binary_image[y:y+h, x:x+w]
+        x, y, w, h = cv2.boundingRect(contour)  # Temukan kotak pembatas untuk setiap kontur
+        char_image = binary_image[y:y+h, x:x+w]  # Potong gambar berdasarkan kotak pembatas
         char_images.append(char_image)
     
     return char_images, contours
@@ -84,8 +83,8 @@ if image_data is not None:
     # Load the image
     image = Image.open(io.BytesIO(image_data.getvalue()))
     
-    # Adjust the image
-    adjusted_image = adjust_image(image, threshold=threshold_value)
+    # Adjust the image (directly use the image for processing)
+    adjusted_image = image  # Removed the adjust_image call
     
     # Display the adjusted image
     st.image(adjusted_image, caption='Adjusted Image', use_column_width=True)
