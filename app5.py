@@ -31,7 +31,7 @@ def preprocess_and_segment(image):
     image_np = np.array(image.convert('RGB'))
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    kernel = np.ones((3, 3), np.uint8)
+    kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     char_images = []
