@@ -38,7 +38,7 @@ def mask_image(image):
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(binary_image):
-    _, binary_image = cv2.threshold(binary_image, 100, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(binary_image, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     # Buat direktori untuk menyimpan karakter
