@@ -16,21 +16,23 @@ def show_image(image, title=''):
     plt.axis('off')
     plt.show()
 
-# Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(image):
     # Konversi gambar PIL ke numpy array (RGB)
     image_np = np.array(image)
-
-    # Convert RGB to grayscale using average method
-    gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-
-    # Thresholding untuk mengubah hitam menjadi putih dan selain hitam menjadi putih
-    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # Periksa jika gambar seluruhnya putih
-    if np.all(binary_image == 255):
-        return [], []  # Jika seluruhnya putih, kembalikan list kosong
-
+    
+    # Konversi gambar dari RGB ke HSV
+    hsv_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
+    
+    # Definisikan rentang warna hitam dalam HSV
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([180, 255, 50])
+    
+    # Buat mask untuk area hitam
+    mask = cv2.inRange(hsv_image, lower_black, upper_black)
+    
+    # Ubah area selain hitam menjadi putih
+    binary_image = cv2.bitwise_not(mask)
+    
     # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
