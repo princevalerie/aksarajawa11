@@ -24,7 +24,7 @@ def mask_image(image):
     upper_black = np.array([180, 255, 135])
     mask = cv2.inRange(hsv_image, lower_black, upper_black)
     binary_image = cv2.bitwise_not(mask)
-    return binary_image
+    return Image.fromarray(binary_image)  # Convert to PIL image
 
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_and_segment(image):
@@ -106,13 +106,13 @@ if image_data is not None:
     image = Image.open(io.BytesIO(image_data.getvalue()))
     
     # Apply masking
-    binary_image = mask_image(image)
+    masked_image = mask_image(image)
     
     # Display the masked image
-    st.image(binary_image, caption='Masked Image', use_column_width=True)
+    st.image(masked_image, caption='Masked Image', use_column_width=True)
     
     # Segment characters from the masked image
-    segmented_chars, contours = preprocess_and_segment(binary_image)
+    segmented_chars, contours = preprocess_and_segment(masked_image)
     
     if segmented_chars:
         # Detect spaces
