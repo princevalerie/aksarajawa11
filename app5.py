@@ -35,7 +35,7 @@ def preprocess_and_segment(image):
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
 
     # Thresholding untuk mendapatkan gambar biner
-    _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(gray_image, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Menggunakan operasi morfologi untuk mengurangi ketebalan karakter
     kernel = np.ones((3, 3), np.uint8)
