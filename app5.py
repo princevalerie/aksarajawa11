@@ -19,10 +19,10 @@ def show_image(image, title=''):
 # Fungsi untuk preprocessing gambar dan segmentasi karakter
 def preprocess_javanese_script(image):
     # Konversi gambar PIL ke numpy array
-    image = np.array(image)
+    image_np = np.array(image.convert('L'))  # Konversi ke grayscale terlebih dahulu
 
     # Thresholding untuk mengubah hitam menjadi putih dan selain hitam menjadi putih
-    _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_image = cv2.threshold(image_np, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Temukan kontur
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
