@@ -102,5 +102,12 @@ if image_data is not None:
         # Display the recognized text
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
+        
+        # Display each segmented character with its prediction
+        st.write("Segmented Characters and Predictions:")
+        for i, char_image in enumerate(segmented_chars):
+            char_image_pil = Image.fromarray(char_image)
+            char_class = predict(char_image_pil, model, transform)
+            st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
     else:
         st.write("No characters detected.")
