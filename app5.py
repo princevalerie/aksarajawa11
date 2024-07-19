@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit as st
 import torch
 import torch.nn as nn
@@ -118,14 +117,18 @@ if image_data is not None:
         recognized_text = ""
         char_positions = [x[1] for x in segmented_chars]  # Get x positions of characters
 
+        # Track last space position for insertion
+        last_space_pos = -1
+        
         for i, (char_image, x) in enumerate(segmented_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            recognized_text += char_class
             
-            # Check for spaces
-            if i < len(positions) and (i + 1 < len(char_positions)) and (positions[i][0] - (char_positions[i] + char_image.shape[1])) > min_space_width:
+            # Check if current position requires a space
+            if i > 0 and i <= len(positions) and (x - char_positions[i-1]) > min_space_width:
                 recognized_text += " "
+            
+            recognized_text += char_class
 
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(positions)}")
@@ -144,4 +147,3 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
-
