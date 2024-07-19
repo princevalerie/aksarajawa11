@@ -70,9 +70,9 @@ def detect_spaces(contours, min_space_width=5):
         x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
         x_curr, _, _, _ = cv2.boundingRect(contours[i])
         space_width = x_curr - (x_prev + w_prev)
-        if space_width > min_space_width:  # Menggunakan ambang batas tetap
+        if space_width > min_space_width:
             spaces.append(space_width)
-            positions.append((x_prev + w_prev, x_curr))  # Position of space
+            positions.append((x_prev + w_prev, x_curr))
     return spaces, positions
 
 # Load the trained model
@@ -130,7 +130,7 @@ if image_data is not None:
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             word += char_class
-            if i < len(spaces) and spaces[i] > 5:
+            if i < len(spaces) and spaces[i] > min_space_width:
                 recognized_text += word + " "
                 word = ""
         
