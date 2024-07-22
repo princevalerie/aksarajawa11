@@ -107,13 +107,16 @@ def count_chars_left_of_spaces(positions, valid_chars):
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
+    pos_index = 0
+
     for i, (char_image, x) in enumerate(segmented_chars):
+        if pos_index < len(positions) and x >= positions[pos_index][0]:
+            # Insert space if current character is at or past the position where space should be inserted
+            result.append(' ')
+            pos_index += 1
+
         result.append((char_image, x))  # Add the character to the result list
-        if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
-            # Only add a space if there's a valid position
-            if char_index < len(positions):
-                result.append((np.full(char_image.shape, 255, dtype=np.uint8), x))  # Add a space image
-            char_index += 1
+
     return result
 
 # Load the trained model
@@ -185,10 +188,11 @@ if image_data is not None:
         # Display the segmented characters and predictions
         st.write("Segmented Characters and Predictions:")
         text_output = []
-        for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
-            if np.all(char_image == 255):  # Check if it's a space image
-                text_output.append(' ')  # Add a space to text_output
+        for i, item in enumerate(segmented_chars_with_spaces):
+            if isinstance(item, str):  # Check if item is a space
+                text_output.append(item)
             else:
+                char_image, x = item
                 char_image_pil = Image.fromarray(char_image)
                 char_class = predict(char_image_pil, model, transform)
                 text_output.append(char_class)  # Add predicted class to text_output
@@ -211,3 +215,4 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
