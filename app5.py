@@ -112,7 +112,7 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
         if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
             # Only add a space if there's a valid position
             if char_index < len(positions):
-                result.append((np.full(char_image.shape, 255, dtype=np.uint8), x - 1))  # Add a space image
+                result.append((np.full(char_image.shape, 255, dtype=np.uint8), x))  # Add a space image
             char_index += 1
     return result
 
@@ -139,8 +139,23 @@ def predict(image, model, transform):
 # Streamlit app
 st.title("Aksara Jawa Detection")
 
-# Camera input
-image_data = st.camera_input("Take a picture")
+# Apply custom CSS for camera input
+st.markdown(
+    """
+    <style>
+    .stCamera {
+        width: 100%;
+        height: 400px;
+        display: block;
+        margin: 0 auto;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Camera input with custom CSS applied
+image_data = st.camera_input("Take a picture", key="camera_input")
 
 if image_data is not None:
     image = Image.open(io.BytesIO(image_data.getvalue()))
@@ -169,14 +184,14 @@ if image_data is not None:
     if segmented_chars_with_spaces:
         # Display the segmented characters and predictions
         st.write("Segmented Characters and Predictions:")
-        text_output = ""
+        text_output = []
         for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
             if np.all(char_image == 255):  # Check if it's a space image
-                text_output += ' '  # Add a space character
+                text_output.append(-1)  # Add -1 for a space
             else:
                 char_image_pil = Image.fromarray(char_image)
                 char_class = predict(char_image_pil, model, transform)
-                text_output += char_class  # Concatenate predicted classes as text
+                text_output.append(char_class)  # Add predicted class to text_output
                 st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
         # Display detected spaces and final output text
@@ -185,7 +200,8 @@ if image_data is not None:
             st.write(f"Space between {x1} and {x2}")
 
         st.write("Final Output Text:")
-        st.write(text_output)  # Display final text output
+        final_text_output = "".join([str(item) if item != -1 else " " for item in text_output])
+        st.write(final_text_output)  # Display final text output with spaces
     else:
         st.write("No characters detected.")
     
@@ -195,4 +211,3 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
-
