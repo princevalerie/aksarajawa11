@@ -115,7 +115,7 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
             if char_index < len(positions):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
-                result.append((space_image, x))
+                result.append((space_image, x + space_width))
             char_index += 1
     return result
 
@@ -177,6 +177,7 @@ if image_data is not None:
         for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
+            # Append the character or space based on position
             if i < len(positions) and char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
                 recognized_text += word + " "
                 word = ""
