@@ -69,14 +69,17 @@ def preprocess_and_segment(image):
     return char_images, contours
 
 # Function to detect spaces between characters based on Q3
-def detect_spaces(contours):
+def detect_spaces(contours, valid_chars):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
     space_widths = []
-    for i in range(1, len(contours)):
-        x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
-        x_curr, _, _, _ = cv2.boundingRect(contours[i])
+
+    valid_contours = [c for c in contours if cv2.boundingRect(c)[0] in [x[1] for x in valid_chars]]
+
+    for i in range(1, len(valid_contours)):
+        x_prev, _, w_prev, _ = cv2.boundingRect(valid_contours[i - 1])
+        x_curr, _, _, _ = cv2.boundingRect(valid_contours[i])
         space_width = x_curr - (x_prev + w_prev)
         space_widths.append(space_width)
 
@@ -85,19 +88,19 @@ def detect_spaces(contours):
         q3 = np.percentile(space_widths, 75)  # Adjust percentile if necessary
         for i in range(len(space_widths)):
             if space_widths[i] > q3:
-                if i + 1 < len(contours):  # Ensure the next index is within range
-                    x_prev, _, w_prev, _ = cv2.boundingRect(contours[i])
-                    x_curr, _, _, _ = cv2.boundingRect(contours[i + 1])
+                if i + 1 < len(valid_contours):  # Ensure the next index is within range
+                    x_prev, _, w_prev, _ = cv2.boundingRect(valid_contours[i])
+                    x_curr, _, _, _ = cv2.boundingRect(valid_contours[i + 1])
                     spaces.append(space_widths[i])
                     positions.append((x_prev + w_prev, x_curr))
 
     return spaces, positions
 
 # Function to count characters left of spaces
-def count_chars_left_of_spaces(positions, contours):
+def count_chars_left_of_spaces(positions, valid_chars):
     counts = []
     for (x1, _) in positions:
-        count = sum(1 for contour in contours if cv2.boundingRect(contour)[0] < x1)
+        count = sum(1 for char in valid_chars if char[1] < x1)
         counts.append(count)
     return counts
 
@@ -154,14 +157,17 @@ if image_data is not None:
     # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
+    # Filter valid characters
+    valid_chars = [(char_image, x) for char_image, x in segmented_chars if is_valid_character(char_image)]
+    
     # Detect spaces
-    spaces, positions = detect_spaces(contours)
+    spaces, positions = detect_spaces(contours, valid_chars)
     
     # Count characters left of each space
-    char_counts_left_of_spaces = count_chars_left_of_spaces(positions, contours)
+    char_counts_left_of_spaces = count_chars_left_of_spaces(positions, valid_chars)
     
     # Add spaces to characters
-    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces)
+    segmented_chars_with_spaces = add_spaces_to_chars(valid_chars, positions, char_counts_left_of_spaces)
     
     if segmented_chars_with_spaces:
         # Predict each character and form words
@@ -182,7 +188,7 @@ if image_data is not None:
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
         
         st.write("Segmented Characters and Predictions:")
-        for i, (char_image, _) in enumerate(segmented_chars):
+        for i, (char_image, _) in enumerate(valid_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
