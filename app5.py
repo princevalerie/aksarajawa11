@@ -91,10 +91,9 @@ def detect_spaces(contours, valid_chars):
                 if i + 1 < len(valid_contours):  # Ensure the next index is within range
                     x_prev, _, w_prev, _ = cv2.boundingRect(valid_contours[i])
                     x_curr, _, _, _ = cv2.boundingRect(valid_contours[i + 1])
-                    spaces.append(space_widths[i])
                     positions.append((x_prev + w_prev, x_curr))
 
-    return spaces, positions
+    return positions
 
 # Function to count characters left of spaces
 def count_chars_left_of_spaces(positions, valid_chars):
@@ -108,21 +107,14 @@ def count_chars_left_of_spaces(positions, valid_chars):
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
-    space_count = 0
-    
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
-        
-        while char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
-            # Ensure the index is within the valid range
+        # Check if a space should be added
+        if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
             if char_index < len(positions):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
                 result.append((space_image, x + space_width))
-                space_count += 1
-                if space_count % 2 == 0:
-                    # Add an extra space after every two consecutive spaces
-                    result.append((space_image, x + space_width))
             char_index += 1
     return result
 
@@ -168,7 +160,7 @@ if image_data is not None:
     valid_chars = [(char_image, x) for char_image, x in segmented_chars if is_valid_character(char_image)]
     
     # Detect spaces
-    spaces, positions = detect_spaces(contours, valid_chars)
+    positions = detect_spaces(contours, valid_chars)
     
     # Count characters left of each space
     char_counts_left_of_spaces = count_chars_left_of_spaces(positions, valid_chars)
@@ -189,12 +181,11 @@ if image_data is not None:
                 text_output += char_class  # Concatenate predicted classes as text
                 st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
-        # Display detected spaces and the number of characters to the left of each space
-        st.write("Detected Spaces and Character Counts:")
-        for idx, (x1, x2) in enumerate(positions):
-            count = char_counts_left_of_spaces[idx]
-            st.write(f"Space between {x1} and {x2}: {count} characters to the left")
-        
+        # Display detected spaces and final output text
+        st.write("Detected Spaces:")
+        for (x1, x2) in positions:
+            st.write(f"Space between {x1} and {x2}")
+
         st.write("Final Output Text:")
         st.write(text_output)  # Display final text output
     else:
