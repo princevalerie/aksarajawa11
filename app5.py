@@ -114,12 +114,12 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     # Check if we need to add a space based on the count
     if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
       # Only add a space if there's a valid position and it's not the last character
-      if char_index < len(positions) and i  < len(segmented_chars):
+      if char_index < len(positions) and i + 1 < len(segmented_chars):
         space_width = positions[char_index][1] - positions[char_index][0]
-        if space_width > 0:
+        if space_width > 1:
           space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
           result.append((space_image, positions[char_index][1]))  # Use the end position for space
-      char_index += 1
+      char_index += 2
 
   return result
 
