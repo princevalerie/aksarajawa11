@@ -32,8 +32,9 @@ def mask_image(image):
 
 # Function to check if a character image is valid based on the proportion of black pixels
 def is_valid_character(char_image):
-    total_pixels = char_image.size
-    black_pixels = np.sum(char_image == 0)
+    char_image_np = np.array(char_image)  # Convert PIL image to numpy array
+    total_pixels = char_image_np.size
+    black_pixels = np.sum(char_image_np == 0)
     black_ratio = black_pixels / total_pixels
     return 0.05 <= black_ratio <= 0.90
 
@@ -80,21 +81,22 @@ def detect_spaces(contours):
         space_widths.append(space_width)
 
     # Calculate Q3 (third quartile)
-    if len(space_widths) > 0:
+    if space_widths:
         q3 = np.percentile(space_widths, 75)
         for i in range(len(space_widths)):
             if space_widths[i] > q3:
-                x_prev, _, w_prev, _ = cv2.boundingRect(contours[i])
-                x_curr, _, _, _ = cv2.boundingRect(contours[i + 1])
-                spaces.append(space_widths[i])
-                positions.append((x_prev + w_prev, x_curr))
+                if i + 1 < len(contours):  # Ensure the next index is within range
+                    x_prev, _, w_prev, _ = cv2.boundingRect(contours[i])
+                    x_curr, _, _, _ = cv2.boundingRect(contours[i + 1])
+                    spaces.append(space_widths[i])
+                    positions.append((x_prev + w_prev, x_curr))
 
     return spaces, positions
 
 # Function to count characters left of spaces
 def count_chars_left_of_spaces(positions, contours):
     counts = []
-    for (x1, x2) in positions:
+    for (x1, _) in positions:
         count = sum(1 for contour in contours if cv2.boundingRect(contour)[0] < x1)
         counts.append(count)
     return counts
@@ -113,6 +115,26 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
                 result.append((space_image, x))
             char_index += 1
     return result
+
+# Load the trained model
+model = models.resnet18(pretrained=False)
+model.fc = nn.Linear(in_features=512, out_features=20, bias=True)
+model.load_state_dict(torch.load('cnn_model1.pth', map_location=torch.device('cpu')))
+model.eval()
+
+# Define the transformations
+transform = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.ToTensor()
+])
+
+# Function to predict the class
+def predict(image, model, transform):
+    image = image.convert("RGB")
+    image = transform(image).unsqueeze(0)
+    outputs = model(image)
+    _, predicted = torch.max(outputs, 1)
+    return class_names[predicted.item()]
 
 # Streamlit app
 st.title("Aksara Jawa Detection")
@@ -141,7 +163,7 @@ if image_data is not None:
     # Add spaces to characters
     segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces)
     
-    if segmented_chars:
+    if segmented_chars_with_spaces:
         # Predict each character and form words
         recognized_text = ""
         word = ""
