@@ -40,11 +40,16 @@ def is_valid_character(char_image):
 
 # Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
+    # Convert PIL image to numpy array (RGB)
     image_np = np.array(image.convert('RGB'))
+    # Convert image from RGB to grayscale
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+    # Thresholding to get binary image
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # Use morphological operations to thin characters
     kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
+    # Find contours in binary image
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     char_images = []
     for contour in contours:
@@ -78,11 +83,12 @@ def detect_spaces(contours, valid_chars):
         space_width = x_curr - (x_prev + w_prev)
         space_widths.append(space_width)
 
+    # Calculate Q3 (third quartile)
     if space_widths:
         q3 = np.percentile(space_widths, 75)
         for i in range(len(space_widths)):
             if space_widths[i] > q3:
-                if i + 1 < len(valid_contours):
+                if i + 1 < len(valid_contours):  # Ensure the next index is within range
                     x_prev, _, w_prev, _ = cv2.boundingRect(valid_contours[i])
                     x_curr, _, _, _ = cv2.boundingRect(valid_contours[i + 1])
                     spaces.append(space_widths[i])
@@ -98,13 +104,14 @@ def count_chars_left_of_spaces(positions, valid_chars):
         counts.append(count)
     return counts
 
-# Function to add spaces to characters and return text
+# Function to add spaces to characters
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
         while char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
+            # Ensure the index is within the valid range
             if char_index < len(positions):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
@@ -163,20 +170,22 @@ if image_data is not None:
     segmented_chars_with_spaces = add_spaces_to_chars(valid_chars, positions, char_counts_left_of_spaces)
     
     if segmented_chars_with_spaces:
-        # Display predictions and results
-        result_text = ""
+        # Display the segmented characters and predictions
+        st.write("Segmented Characters and Predictions:")
+        text_output = ""
         for i, (char_image, _) in enumerate(valid_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            result_text += f"{char_class} "
+            text_output += char_class  # Concatenate predicted classes as text
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
-        # Add spaces to the result text based on positions
+        # Display detected spaces and final output text
+        st.write("Detected Spaces:")
         for (x1, x2) in positions:
-            result_text += " "
-        
-        st.write("Detected Text:")
-        st.write(result_text)
+            st.write(f"Space between {x1} and {x2}")
+
+        st.write("Final Output Text:")
+        st.write(text_output)  # Display final text output
     else:
         st.write("No characters detected.")
     
