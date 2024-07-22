@@ -119,25 +119,6 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
             char_index += 1
     return result
 
-# Function to generate final text from characters with spaces
-def generate_text_with_spaces(segmented_chars_with_spaces):
-    text = ""
-    for (char_image, _) in segmented_chars_with_spaces:
-        if char_image.size == 0:  # Empty space
-            text += " "
-        else:
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            text += char_class
-    return text
-
-# Function to validate space detection and output text consistency
-def validate_space_detection_and_text(detected_spaces, final_text):
-    expected_text = final_text
-    for (start, end) in detected_spaces:
-        expected_text = expected_text.replace(" ", "", 1)
-    return " " in final_text == any([start < len(final_text) for start, end in detected_spaces])
-
 # Load the trained model
 model = models.resnet18(pretrained=False)
 model.fc = nn.Linear(in_features=512, out_features=20, bias=True)
@@ -189,33 +170,28 @@ if image_data is not None:
     segmented_chars_with_spaces = add_spaces_to_chars(valid_chars, positions, char_counts_left_of_spaces)
     
     if segmented_chars_with_spaces:
-        # Generate final text with spaces
-        final_text = generate_text_with_spaces(segmented_chars_with_spaces)
-        
-        # Validate space detection and final text
-        if validate_space_detection_and_text(positions, final_text):
-            st.write("Final Output Text:")
-            st.write(final_text)  # Display final text output
-        else:
-            st.write("Warning: Detected spaces and final text may not match.")
-        
         # Display the segmented characters and predictions
         st.write("Segmented Characters and Predictions:")
+        text_output = ""
         for i, (char_image, _) in enumerate(valid_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
+            text_output += char_class  # Concatenate predicted classes as text
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
-        # Display detected spaces
+        # Display detected spaces and final output text
         st.write("Detected Spaces:")
         for (x1, x2) in positions:
             st.write(f"Space between {x1} and {x2}")
 
-        # Visualize detected spaces
-        image_np = np.array(masked_image)
-        for (x1, x2) in positions:
-            cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
-        
-        st.image(image_np, caption='Detected Spaces', use_column_width=True)
+        st.write("Final Output Text:")
+        st.write(text_output)  # Display final text output
     else:
         st.write("No characters detected.")
+    
+    # Visualize detected spaces
+    image_np = np.array(masked_image)
+    for (x1, x2) in positions:
+        cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
+    
+    st.image(image_np, caption='Detected Spaces', use_column_width=True)
