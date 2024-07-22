@@ -189,11 +189,12 @@ if image_data is not None:
                 text_output += char_class  # Concatenate predicted classes as text
                 st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
-        # Display detected spaces and final output text
-        st.write("Detected Spaces:")
-        for (x1, x2) in positions:
-            st.write(f"Space between {x1} and {x2}")
-
+        # Display detected spaces and the number of characters to the left of each space
+        st.write("Detected Spaces and Character Counts:")
+        for idx, (x1, x2) in enumerate(positions):
+            count = char_counts_left_of_spaces[idx]
+            st.write(f"Space between {x1} and {x2}: {count} characters to the left")
+        
         st.write("Final Output Text:")
         st.write(text_output)  # Display final text output
     else:
