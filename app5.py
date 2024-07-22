@@ -106,32 +106,13 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
         while char_index < len(char_counts_left_of_spaces) and i + 1 == char_counts_left_of_spaces[char_index]:
-            # Get the space width based on detected spaces
-            space_width = positions[char_index][1] - positions[char_index][0]
-            space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
-            result.append((space_image, x))
+            # Ensure the index is within the valid range
+            if char_index < len(positions):
+                space_width = positions[char_index][1] - positions[char_index][0]
+                space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
+                result.append((space_image, x))
             char_index += 1
     return result
-
-# Load the trained model
-model = models.resnet18(pretrained=False)
-model.fc = nn.Linear(in_features=512, out_features=20, bias=True)
-model.load_state_dict(torch.load('cnn_model1.pth', map_location=torch.device('cpu')))
-model.eval()
-
-# Define the transformations
-transform = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.ToTensor()
-])
-
-# Function to predict the class
-def predict(image, model, transform):
-    image = image.convert("RGB")
-    image = transform(image).unsqueeze(0)
-    outputs = model(image)
-    _, predicted = torch.max(outputs, 1)
-    return class_names[predicted.item()]
 
 # Streamlit app
 st.title("Aksara Jawa Detection")
@@ -165,7 +146,8 @@ if image_data is not None:
         recognized_text = ""
         word = ""
         for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
-            if char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
+            # Ensure the index is within the valid range
+            if i < len(positions) and char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
                 recognized_text += word + " "
                 word = ""
             else:
