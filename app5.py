@@ -40,16 +40,11 @@ def is_valid_character(char_image):
 
 # Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
-    # Convert PIL image to numpy array (RGB)
     image_np = np.array(image.convert('RGB'))
-    # Convert image from RGB to grayscale
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-    # Thresholding to get binary image
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    # Use morphological operations to thin characters
     kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
-    # Find contours in binary image
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     char_images = []
     for contour in contours:
@@ -83,12 +78,11 @@ def detect_spaces(contours, valid_chars):
         space_width = x_curr - (x_prev + w_prev)
         space_widths.append(space_width)
 
-    # Calculate Q3 (third quartile)
     if space_widths:
-        q3 = np.percentile(space_widths, 75)  # Adjust percentile if necessary
+        q3 = np.percentile(space_widths, 75)
         for i in range(len(space_widths)):
             if space_widths[i] > q3:
-                if i + 1 < len(valid_contours):  # Ensure the next index is within range
+                if i + 1 < len(valid_contours):
                     x_prev, _, w_prev, _ = cv2.boundingRect(valid_contours[i])
                     x_curr, _, _, _ = cv2.boundingRect(valid_contours[i + 1])
                     spaces.append(space_widths[i])
@@ -104,14 +98,13 @@ def count_chars_left_of_spaces(positions, valid_chars):
         counts.append(count)
     return counts
 
-# Function to add spaces to characters
+# Function to add spaces to characters and return text
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
         while char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
-            # Ensure the index is within the valid range
             if char_index < len(positions):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
@@ -170,29 +163,20 @@ if image_data is not None:
     segmented_chars_with_spaces = add_spaces_to_chars(valid_chars, positions, char_counts_left_of_spaces)
     
     if segmented_chars_with_spaces:
-        # Predict each character and form words
-        recognized_text = ""
-        word = ""
-        char_idx = 0
-        for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            # Append the character or space based on position
-            if i < len(positions) and char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
-                recognized_text += word + " "
-                word = ""
-            else:
-                word += char_class
-        
-        recognized_text += word
-        st.write(f"Recognized Text: {recognized_text.strip()}")
-        st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
-        
-        st.write("Segmented Characters and Predictions:")
+        # Display predictions and results
+        result_text = ""
         for i, (char_image, _) in enumerate(valid_chars):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
+            result_text += f"{char_class} "
             st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
+        
+        # Add spaces to the result text based on positions
+        for (x1, x2) in positions:
+            result_text += " "
+        
+        st.write("Detected Text:")
+        st.write(result_text)
     else:
         st.write("No characters detected.")
     
