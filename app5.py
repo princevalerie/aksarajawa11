@@ -82,7 +82,7 @@ def detect_spaces(contours):
 
     # Calculate Q3 (third quartile)
     if space_widths:
-        q3 = np.percentile(space_widths, 60)
+        q3 = np.percentile(space_widths, 90)
         for i in range(len(space_widths)):
             if space_widths[i] > q3:
                 if i + 1 < len(contours):  # Ensure the next index is within range
