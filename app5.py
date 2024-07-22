@@ -108,14 +108,21 @@ def count_chars_left_of_spaces(positions, valid_chars):
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
+    space_count = 0
+    
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
+        
         while char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
             # Ensure the index is within the valid range
             if char_index < len(positions):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
                 result.append((space_image, x + space_width))
+                space_count += 1
+                if space_count % 2 == 0:
+                    # Add an extra space after every two consecutive spaces
+                    result.append((space_image, x + space_width))
             char_index += 1
     return result
 
