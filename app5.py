@@ -173,11 +173,14 @@ if image_data is not None:
         # Display the segmented characters and predictions
         st.write("Segmented Characters and Predictions:")
         text_output = ""
-        for i, (char_image, _) in enumerate(valid_chars):
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            text_output += char_class  # Concatenate predicted classes as text
-            st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
+        for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
+            if np.all(char_image == 255):  # Check if it's a space image
+                text_output += ' '  # Add a space character
+            else:
+                char_image_pil = Image.fromarray(char_image)
+                char_class = predict(char_image_pil, model, transform)
+                text_output += char_class  # Concatenate predicted classes as text
+                st.image(char_image, caption=f'Character {i}: {char_class}', use_column_width=True)
         
         # Display detected spaces and final output text
         st.write("Detected Spaces:")
