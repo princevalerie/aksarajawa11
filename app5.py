@@ -67,18 +67,28 @@ def preprocess_and_segment(image):
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
-# Detect spaces between characters with a fixed minimum space width
-def detect_spaces(contours, min_space_width=5):
+# Function to detect spaces between characters based on Q3
+def detect_spaces(contours):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
     positions = []
+    space_widths = []
     for i in range(1, len(contours)):
         x_prev, _, w_prev, _ = cv2.boundingRect(contours[i - 1])
         x_curr, _, _, _ = cv2.boundingRect(contours[i])
         space_width = x_curr - (x_prev + w_prev)
-        if space_width > min_space_width:
-            spaces.append(space_width)
-            positions.append((x_prev + w_prev, x_curr))
+        space_widths.append(space_width)
+
+    # Calculate Q3 (third quartile)
+    if len(space_widths) > 0:
+        q3 = np.percentile(space_widths, 75)
+        for i in range(len(space_widths)):
+            if space_widths[i] > q3:
+                x_prev, _, w_prev, _ = cv2.boundingRect(contours[i])
+                x_curr, _, _, _ = cv2.boundingRect(contours[i + 1])
+                spaces.append(space_widths[i])
+                positions.append((x_prev + w_prev, x_curr))
+
     return spaces, positions
 
 # Function to count characters left of spaces
@@ -139,17 +149,14 @@ if image_data is not None:
     # Segment characters from the masked image
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
-    # Detect spaces with a fixed minimum space width
-    min_space_width = 15  # Fixed minimum space width value
-    
     # Detect spaces
-    spaces, positions = detect_spaces(contours, min_space_width)
+    spaces, positions = detect_spaces(contours)
     
     # Count characters left of each space
     char_counts_left_of_spaces = count_chars_left_of_spaces(positions, contours)
     
     # Add spaces to characters
-    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width)
+    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width=30)
     
     if segmented_chars:
         # Predict each character and form words
@@ -182,3 +189,4 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
