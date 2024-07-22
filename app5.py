@@ -187,7 +187,7 @@ if image_data is not None:
         text_output = []
         for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
             if np.all(char_image == 255):  # Check if it's a space image
-              text_output[i-=i] += ' '
+              text_output[i] += ' '
             else:
                 char_image_pil = Image.fromarray(char_image)
                 char_class = predict(char_image_pil, model, transform)
