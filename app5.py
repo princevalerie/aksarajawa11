@@ -36,7 +36,7 @@ def is_valid_character(char_image):
     total_pixels = char_image_np.size
     black_pixels = np.sum(char_image_np == 0)
     black_ratio = black_pixels / total_pixels
-    return 0.08 <= black_ratio <= 0.90
+    return 0.04 <= black_ratio <= 0.90
 
 # Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
