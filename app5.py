@@ -30,6 +30,13 @@ def mask_image(image):
     binary_image = cv2.bitwise_not(mask)
     return Image.fromarray(binary_image)  # Convert to PIL image
 
+# Function to check if a character image is valid based on the proportion of black pixels
+def is_valid_character(char_image):
+    total_pixels = char_image.size
+    black_pixels = np.sum(char_image == 0)
+    black_ratio = black_pixels / total_pixels
+    return 0.15 <= black_ratio <= 0.85
+
 # Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
     # Convert PIL image to numpy array (RGB)
@@ -55,7 +62,8 @@ def preprocess_and_segment(image):
             cv2.BORDER_CONSTANT, 
             value=255
         )
-        char_images.append((char_image_with_border, x))
+        if is_valid_character(char_image_with_border):
+            char_images.append((char_image_with_border, x))
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
@@ -132,7 +140,7 @@ if image_data is not None:
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
     # Detect spaces with a fixed minimum space width
-    min_space_width = 5  # Fixed minimum space width value
+    min_space_width = 30  # Fixed minimum space width value
     
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
