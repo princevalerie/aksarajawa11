@@ -119,7 +119,7 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
                 space_width = positions[char_index][1] - positions[char_index][0]
                 space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
                 result.append((space_image, x + space_width))
-                space_count += 1
+                space_count += 0
                 if space_count % 2 == 0:
                     # Add an extra space after every two consecutive spaces
                     result.append((space_image, x + space_width))
