@@ -100,13 +100,15 @@ def count_chars_left_of_spaces(positions, contours):
     return counts
 
 # Function to add spaces to characters
-def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width):
+def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
     char_index = 0
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))
         while char_index < len(char_counts_left_of_spaces) and i + 1 == char_counts_left_of_spaces[char_index]:
-            space_image = np.ones((char_image.shape[0], min_space_width), dtype=np.uint8) * 255
+            # Get the space width based on detected spaces
+            space_width = positions[char_index][1] - positions[char_index][0]
+            space_image = np.ones((char_image.shape[0], space_width), dtype=np.uint8) * 255
             result.append((space_image, x))
             char_index += 1
     return result
@@ -156,14 +158,14 @@ if image_data is not None:
     char_counts_left_of_spaces = count_chars_left_of_spaces(positions, contours)
     
     # Add spaces to characters
-    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width=30)
+    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces)
     
     if segmented_chars:
         # Predict each character and form words
         recognized_text = ""
         word = ""
         for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
-            if char_image.shape[1] == min_space_width:
+            if char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
                 recognized_text += word + " "
                 word = ""
             else:
@@ -189,4 +191,3 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
-
