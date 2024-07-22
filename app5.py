@@ -145,7 +145,7 @@ st.markdown(
     <style>
     .stCamera {
         width: 100%;
-        height: 400px;
+        height: 200px;
         display: block;
         margin: 0 auto;
     }
