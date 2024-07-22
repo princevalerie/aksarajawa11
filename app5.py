@@ -187,7 +187,7 @@ if image_data is not None:
         text_output = []
         for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
             if np.all(char_image == 255):  # Check if it's a space image
-              text_output[i + 1] += ' '
+                text_output.append(' ')  # Add a space to text_output
             else:
                 char_image_pil = Image.fromarray(char_image)
                 char_class = predict(char_image_pil, model, transform)
@@ -200,7 +200,7 @@ if image_data is not None:
             st.write(f"Space between {x1} and {x2}")
 
         st.write("Final Output Text:")
-        final_text_output = "".join([str(item) if item != -1 else " " for item in text_output])
+        final_text_output = "".join(text_output)  # Join text_output list into a single string
         st.write(final_text_output)  # Display final text output with spaces
     else:
         st.write("No characters detected.")
