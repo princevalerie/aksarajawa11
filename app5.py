@@ -106,7 +106,7 @@ def count_chars_left_of_spaces(positions, valid_chars):
 # Function to add spaces to characters
 def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
     result = []
-    char_index = -1
+    char_index = 0
     for i, (char_image, x) in enumerate(segmented_chars):
         result.append((char_image, x))  # Add the character to the result list
         if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
