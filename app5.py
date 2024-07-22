@@ -172,19 +172,19 @@ if image_data is not None:
     if segmented_chars_with_spaces:
         # Predict each character and form words
         recognized_text = ""
-        current_position = 0
-        
-        for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
+        word = ""
+        char_idx = 0
+        for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
             char_image_pil = Image.fromarray(char_image)
             char_class = predict(char_image_pil, model, transform)
-            
-            # Determine if this is a space
-            if char_image.shape[1] == positions[current_position][1] - positions[current_position][0]:
-                recognized_text += " "
-                current_position += 1
-            
-            recognized_text += char_class
-
+            # Append the character or space based on position
+            if i < len(positions) and char_image.shape[1] > 1 and char_image.shape[1] == positions[i][1] - positions[i][0]:
+                recognized_text += word + " "
+                word = ""
+            else:
+                word += char_class
+        
+        recognized_text += word
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
         
