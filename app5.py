@@ -35,7 +35,7 @@ def is_valid_character(char_image):
     total_pixels = char_image.size
     black_pixels = np.sum(char_image == 0)
     black_ratio = black_pixels / total_pixels
-    return 0.15 <= black_ratio <= 0.85
+    return 0.7 <= black_ratio <= 0.90
 
 # Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
@@ -140,7 +140,7 @@ if image_data is not None:
     segmented_chars, contours = preprocess_and_segment(masked_image)
     
     # Detect spaces with a fixed minimum space width
-    min_space_width = 30  # Fixed minimum space width value
+    min_space_width = 15  # Fixed minimum space width value
     
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
