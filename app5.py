@@ -112,7 +112,7 @@ def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces):
         if char_index < len(char_counts_left_of_spaces) and i == char_counts_left_of_spaces[char_index]:
             # Only add a space if there's a valid position
             if char_index < len(positions):
-                result.append((np.full(char_image.shape, 255, dtype=np.uint8), x))  # Add a space image
+                result.append((np.full(char_image.shape, 255, dtype=np.uint8), x - 1))  # Add a space image
             char_index += 1
     return result
 
@@ -170,7 +170,7 @@ if image_data is not None:
         # Display the segmented characters and predictions
         st.write("Segmented Characters and Predictions:")
         text_output = ""
-        for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
+        for i, (char_image, x) in enumerate(segmented_chars_with_spaces):
             if np.all(char_image == 255):  # Check if it's a space image
                 text_output += ' '  # Add a space character
             else:
@@ -195,3 +195,4 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
+
