@@ -9,14 +9,18 @@ from PIL import Image
 import io
 import matplotlib.pyplot as plt
 
-# Function to display an image
+# Define class names
+class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
+               'na', 'nga', 'nya', 'pa', 'ra', 'sa', 'ta', 'tha', 'wa', 'ya']
+
+# Function to display image
 def show_image(image, title=''):
     plt.imshow(image, cmap='gray')
     plt.title(title)
     plt.axis('off')
     plt.show()
 
-# Function to mask the image
+# Function to mask image
 def mask_image(image):
     image_np = np.array(image)
     hsv_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2HSV)
@@ -26,24 +30,19 @@ def mask_image(image):
     binary_image = cv2.bitwise_not(mask)
     return Image.fromarray(binary_image)  # Convert to PIL image
 
-# Function for preprocessing the image and segmenting characters
+# Function for image preprocessing and character segmentation
 def preprocess_and_segment(image):
     # Convert PIL image to numpy array (RGB)
     image_np = np.array(image.convert('RGB'))
-
     # Convert image from RGB to grayscale
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-
-    # Thresholding to get a binary image
+    # Thresholding to get binary image
     _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # Use morphological operations to reduce character thickness
+    # Use morphological operations to thin characters
     kernel = np.ones((1, 1), np.uint8)
     eroded_image = cv2.erode(binary_image, kernel, iterations=1)
-
-    # Find contours in the binary image
+    # Find contours in binary image
     contours, _ = cv2.findContours(eroded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
     char_images = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
@@ -57,11 +56,10 @@ def preprocess_and_segment(image):
             value=255
         )
         char_images.append((char_image_with_border, x))
-
     char_images = sorted(char_images, key=lambda x: x[1])
     return char_images, contours
 
-# Detect spaces between characters with a fixed threshold
+# Detect spaces between characters with a fixed minimum space width
 def detect_spaces(contours, min_space_width=5):
     contours = sorted(contours, key=lambda x: cv2.boundingRect(x)[0])
     spaces = []
@@ -75,10 +73,27 @@ def detect_spaces(contours, min_space_width=5):
             positions.append((x_prev + w_prev, x_curr))
     return spaces, positions
 
-# Load the trained model
-class_names = ['ba', 'ca', 'da', 'dha', 'ga', 'ha', 'ja', 'ka', 'la', 'ma', 
-               'na', 'nga', 'nya', 'pa', 'ra', 'sa', 'ta', 'tha', 'wa', 'ya']
+# Function to count characters left of spaces
+def count_chars_left_of_spaces(positions, contours):
+    counts = []
+    for (x1, x2) in positions:
+        count = sum(1 for contour in contours if cv2.boundingRect(contour)[0] < x1)
+        counts.append(count)
+    return counts
 
+# Function to add spaces to characters
+def add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width):
+    result = []
+    char_index = 0
+    for i, (char_image, x) in enumerate(segmented_chars):
+        result.append((char_image, x))
+        while char_index < len(char_counts_left_of_spaces) and i + 1 == char_counts_left_of_spaces[char_index]:
+            space_image = np.ones((char_image.shape[0], min_space_width), dtype=np.uint8) * 255
+            result.append((space_image, x))
+            char_index += 1
+    return result
+
+# Load the trained model
 model = models.resnet18(pretrained=False)
 model.fc = nn.Linear(in_features=512, out_features=20, bias=True)
 model.load_state_dict(torch.load('cnn_model1.pth', map_location=torch.device('cpu')))
@@ -122,24 +137,25 @@ if image_data is not None:
     # Detect spaces
     spaces, positions = detect_spaces(contours, min_space_width)
     
+    # Count characters left of each space
+    char_counts_left_of_spaces = count_chars_left_of_spaces(positions, contours)
+    
+    # Add spaces to characters
+    segmented_chars_with_spaces = add_spaces_to_chars(segmented_chars, positions, char_counts_left_of_spaces, min_space_width)
+    
     if segmented_chars:
         # Predict each character and form words
         recognized_text = ""
         word = ""
-        space_index = 0
-        char_count = len(segmented_chars)
-        
-        for i, (char_image, _) in enumerate(segmented_chars):
-            char_image_pil = Image.fromarray(char_image)
-            char_class = predict(char_image_pil, model, transform)
-            word += char_class
-            
-            # Handle spaces
-            if space_index < len(positions) and i == count_chars_left_of_spaces(positions, contours)[space_index]:
+        for i, (char_image, _) in enumerate(segmented_chars_with_spaces):
+            if char_image.shape[1] == min_space_width:
                 recognized_text += word + " "
                 word = ""
-                space_index += 1
-        
+            else:
+                char_image_pil = Image.fromarray(char_image)
+                char_class = predict(char_image_pil, model, transform)
+                word += char_class
+
         recognized_text += word
         st.write(f"Recognized Text: {recognized_text.strip()}")
         st.write(f"Jumlah spasi yang terdeteksi: {len(spaces)}")
@@ -158,4 +174,3 @@ if image_data is not None:
         cv2.rectangle(image_np, (x1, 0), (x2, image_np.shape[0]), (0, 255, 0), 2)
     
     st.image(image_np, caption='Detected Spaces', use_column_width=True)
-
