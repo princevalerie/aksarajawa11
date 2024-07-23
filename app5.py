@@ -142,21 +142,6 @@ def predict(image, model, transform):
 # Streamlit app
 st.title("Aksara Jawa Detection")
 
-# Apply custom CSS for camera input
-st.markdown(
-    """
-    <style>
-    .stCamera {
-        width: 100%;
-        height: 200px;
-        display: block;
-        margin: 0 auto;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # Camera input with custom CSS applied
 image_data = st.camera_input("Take a picture", key="camera_input")
 
